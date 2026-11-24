@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mons0 — Android / HyperOS modding</title>
+<meta name="description" content="mons0 (kazhemons): модули LSPosed и Magisk для Xiaomi HyperOS, локализация CN-приложений, бенчмарки, инструменты Android.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" sizes="64x64">
+<link rel="alternate icon" href="favicon.png">
+<style>
+  :root{
+    --bg:#04060c; --fg:#e8f1ff; --muted:#8fa3c4;
+    --c1:#35e0ff; --c2:#a06bff; --c3:#ff4fa3;
+    --card:rgba(14,20,34,.72); --border:rgba(53,224,255,.18); --glow:rgba(53,224,255,.35);
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow-x:hidden}
+
+  /* background: drifting neons + perspective grid */
+  .bg{position:fixed;inset:0;z-index:-2;background:
+      radial-gradient(60% 50% at 15% 0%,rgba(53,224,255,.16),transparent 70%),
+      radial-gradient(50% 45% at 85% 10%,rgba(160,107,255,.16),transparent 70%),
+      radial-gradient(40% 40% at 50% 100%,rgba(255,79,163,.10),transparent 70%),var(--bg)}
+  .bg::before{content:"";position:absolute;inset:-40%;background:
+      radial-gradient(closest-side,rgba(53,224,255,.12),transparent 70%) 20% 30%/45% 45% no-repeat,
+      radial-gradient(closest-side,rgba(160,107,255,.12),transparent 70%) 80% 60%/40% 40% no-repeat;
+      animation:drift 26s ease-in-out infinite alternate}
+  @keyframes drift{to{transform:translate3d(6%,-5%,0) scale(1.15)}}
+  .floor{position:fixed;left:0;right:0;bottom:0;height:52vh;z-index:-1;opacity:.35;
+      background:linear-gradient(to top,rgba(53,224,255,.28),transparent 70%),
+      repeating-linear-gradient(90deg,rgba(53,224,255,.22) 0 1px,transparent 1px 72px),
+      repeating-linear-gradient(0deg,rgba(53,224,255,.18) 0 1px,transparent 1px 72px);
+      transform:perspective(420px) rotateX(62deg);transform-origin:bottom center;
+      -webkit-mask-image:linear-gradient(to top,#000,transparent 85%);mask-image:linear-gradient(to top,#000,transparent 85%);
+      animation:run 9s linear infinite}
+  @keyframes run{to{background-position:0 72px,0 72px,0 0}}
+
+  main{max-width:1040px;margin:0 auto;padding:28px 20px 80px}
+
+  /* language switch */
+  .lang{position:fixed;top:16px;right:16px;z-index:5;display:flex;gap:2px;padding:3px;
+      border:1px solid var(--border);border-radius:999px;background:rgba(8,13,24,.72);
+      backdrop-filter:blur(8px);font:600 12px/1 var(--mono);letter-spacing:.12em}
+  .lang button{border:0;background:transparent;color:var(--muted);padding:7px 13px;border-radius:999px;
+      cursor:pointer;font:inherit;transition:color .25s,background .25s,box-shadow .25s}
+  .lang button:hover{color:var(--fg)}
+  .lang button[aria-pressed="true"]{color:#04060c;background:linear-gradient(90deg,var(--c1),var(--c2));
+      box-shadow:0 0 18px var(--glow)}
+
+  /* hero */
+  header{padding:56px 0 26px;position:relative}
+  .eyebrow{font:600 12px/1 var(--mono);letter-spacing:.28em;color:var(--c1);text-transform:uppercase}
+  h1{margin:14px 0 6px;font-size:clamp(2.2rem,6vw,4rem);line-height:1.05;font-weight:800;letter-spacing:-.02em;
+      background:linear-gradient(92deg,var(--c1),var(--c2) 25%,var(--c3) 45%,var(--c1) 70%,var(--c2));
+      background-size:180% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+      animation:sheen 8s linear infinite}
+  @keyframes sheen{0%{background-position:0 0}100%{background-position:180% 0}}
+  .sub{color:var(--muted);max-width:62ch;margin:0}
+  .scan{position:absolute;left:0;right:0;top:0;height:1px;
+      background:linear-gradient(90deg,transparent,var(--c1),transparent);animation:scan 7s ease-in-out infinite}
+  @keyframes scan{0%{top:0;opacity:0}20%{opacity:.9}80%{opacity:.9}100%{top:100%;opacity:0}}
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .tag{font:600 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c1);
+      border:1px solid var(--border);border-radius:999px;padding:7px 11px;background:rgba(53,224,255,.06);
+      animation:pulse 4s ease-in-out infinite}
+  .tag:nth-child(2n){color:var(--c2);border-color:rgba(160,107,255,.22);animation-delay:1.2s}
+  @keyframes pulse{50%{box-shadow:0 0 16px var(--glow);border-color:rgba(53,224,255,.45)}}
+
+  h2{margin:44px 0 14px;font:700 1.05rem/1.4 var(--mono);letter-spacing:.18em;text-transform:uppercase;
+      display:flex;align-items:center;gap:12px}
+  h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--c1),transparent)}
+  p{margin:0 0 12px;max-width:78ch}
+
+  /* repo cards */
+  .sub-h{font:600 12px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+  .card{position:relative;overflow:hidden;padding:16px 18px;border-radius:12px;
+      background:var(--card);border:1px solid var(--border);
+      opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease,border-color .3s,box-shadow .3s}
+  .card.in{opacity:1;transform:none}
+  .card::before{content:"";position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(115deg,transparent 30%,rgba(53,224,255,.14) 45%,transparent 60%);
+      transform:translateX(-120%);transition:transform .7s ease}
+  .card:hover{border-color:rgba(53,224,255,.55);box-shadow:0 10px 34px -12px var(--glow)}
+  .card:hover::before{transform:translateX(120%)}
+  .card h3{margin:0 0 8px;font:700 15px/1.3 var(--mono);word-break:break-word}
+  .card h3 a{color:var(--fg);text-decoration:none}
+  .card h3 a:hover{color:var(--c1)}
+  .card p{margin:0;font-size:.9rem;color:var(--muted)}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+  .chip{font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+      border:1px solid rgba(143,163,196,.22);border-radius:6px;padding:4px 7px}
+  .chip.star{color:#ffd166;border-color:rgba(255,209,102,.35)}
+  .chip.fork{color:var(--c3);border-color:rgba(255,79,163,.32)}
+  .chip.language{color:var(--c1);border-color:rgba(53,224,255,.3)}
+  footer{margin-top:52px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);padding-top:18px}
+  a{color:var(--c1)}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .card{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="floor"></div>
+
+<nav class="lang" aria-label="Language">
+  <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+  <button type="button" data-lang="en" aria-pressed="false">EN</button>
+</nav>
+
+<main>
+  <header>
+    <div class="scan"></div>
+    <div class="eyebrow" data-i18n="eyebrow"></div>
+    <h1>mons0</h1>
+    <p class="sub" data-i18n="sub"></p>
+    <div class="tags" id="tags"></div>
+  </header>
+
+  <section>
+    <h2 data-i18n="about_h"></h2>
+    <p data-i18n="about_p1"></p>
+    <p data-i18n="about_p2"></p>
+  </section>
+
+  <section>
+    <h2 data-i18n="repos_h"></h2>
+    <p class="sub-h" id="repoStats"></p>
+    <div class="sub-h" data-i18n="own_h"></div>
+    <div class="cards" id="own"></div>
+    <div class="sub-h" data-i18n="forks_h"></div>
+    <div class="cards" id="forks"></div>
+  </section>
+
+  <section>
+    <h2 data-i18n="contact_h"></h2>
+    <p><a href="https://github.com/kazhemons">@kazhemons</a> · <a href="https://github.com/kazhemons?tab=repositories" data-i18n="repos_link"></a> · <a href="https://t.me/majestics_translation" data-i18n="tg_link"></a></p>
+  </section>
+
+  <footer data-i18n="footer"></footer>
+</main>
+
+<script>
+const REPOS=[
+ {n:"CNtoRU",s:27,d:{ru:"Magisk-модуль с переводами для китайских MIUI/HyperOS-прошивок.",en:"Magisk module that adds translations to Chinese MIUI/HyperOS ROMs."}},
+ {n:"HyperOS-RU",s:3,d:{ru:"Русский язык в CN-прошивках HyperOS через LSPosed (API 102): перехват и подмена ресурсов приложений Xiaomi, ru/ru_RU появляется в выборе языков «Настроек».",en:"Russian language in CN HyperOS firmware via LSPosed (API 102): intercepts and swaps Xiaomi app resources, ru/ru_RU shows up in the Settings language picker."}},
+ {n:"Benchmark-HUB",s:0,l:"Kotlin",d:{ru:"Android-бенчмарк без аккаунтов и разрешений: джиттер кадров, задержки потоков, стресс-тесты CPU/RAM/GPU/ROM, мониторинг нагрева и справка об устройстве.",en:"Android benchmark without accounts or permissions: frame jitter, thread latency, CPU/RAM/GPU/ROM stress tests, thermal monitoring and device info."}},
+ {n:"hermes-weather",l:"JavaScript",d:{ru:"Плагин Hermes Desktop: прогноз погоды на 7 дней в статус-баре.",en:"Hermes Desktop plugin: 7-day weather forecast in the status bar."}},
+ {n:"hermes-telegram-gateway",l:"JavaScript",d:{ru:"Плагин Hermes Desktop: Telegram-шлюз с элементами управления в статус-баре.",en:"Hermes Desktop plugin: Telegram gateway with controls in the status bar."}},
+ {n:"Scene_RU",s:1,l:"HTML",d:{ru:"Локализованная сборка Scene — утилита для работы с системными файлами Android.",en:"Localized build of Scene — a tool for working with Android system files."}},
+ {n:"Dev_Features-Props",l:"Shell",d:{ru:"Magisk-модуль: props и патч dev_features на устройствах MIUI.",en:"Magisk module: props and dev_features patching on MIUI devices."}},
+
+ {n:"HyperLight_RU",f:1,s:2,d:{ru:"Модуль, дополняющий эффекты подсветки HyperOS 3.",en:"Module that completes the HyperOS 3 highlight effects."}},
+ {n:"com.comewhy.gtext",f:1,d:{ru:"Xposed-модуль для подмены текста в приложениях.",en:"Xposed module for replacing app text."}},
+ {n:"HubeRSoundX",f:1,d:{ru:"Обработка аудио на устройстве без расширенных разрешений.",en:"On-device audio processing without extended permissions."}},
+ {n:"android_kernel_xiaomi_sm8350_miyume",f:1,d:{ru:"Ядро HyperOS для Xiaomi SM8350 (MiYume).",en:"HyperOS kernel for Xiaomi SM8350 (MiYume)."}},
+ {n:"cam_tuning_patcher_888",f:1,d:{ru:"Правки chromatix-библиотек камеры Snapdragon 888.",en:"Snapdragon 888 camera chromatix library patches."}},
+ {n:"curve_patcher_888",f:1,d:{ru:"Правки тональных кривых камеры Snapdragon 888.",en:"Snapdragon 888 camera tone-curve patches."}},
+ {n:"MiuiQuickOpenHook_RU",f:1,d:{ru:"Хук быстрого доступа к настройкам MIUI.",en:"Hook for quick access to MIUI settings."}},
+ {n:"punch-hole-download-progress",f:1,d:{ru:"Xposed-модуль: прогресс загрузки кольцом вокруг выреза камеры.",en:"Xposed module: download progress as a ring around the camera cutout."}},
+ {n:"majestic.github.io",l:"HTML",d:{ru:"Репозиторий этого сайта.",en:"This site's repository."}}
+];
+
+const TAGS=["LSPosed","Magisk","Xposed","Flutter","HyperOS","MIUI","SM8350","Snapdragon 888","Kotlin"];
+const own=r=>r.filter(x=>!x.f),forks=r=>r.filter(x=>x.f);
+
+const UI={
+ ru:{eyebrow:"Android / HyperOS modding",sub:"Модули LSPosed и Magisk, подмена ресурсов и текста приложений, патчи камеры и ядер — всё, что меняет Xiaomi изнутри.",
+  about_h:"Обо мне",
+  about_p1:"Пишу модули, которые меняют систему Xiaomi изнутри: подменяю ресурсы и текст приложений через LSPosed (API 102), включая перехват вывода текста во Flutter-приложениях, патчу dev_features и chromatix-библиотеки камеры, собираю ядра под SM8350.",
+  about_p2:"Вторая линия — диагностика устройства: бенчмарки и мониторинг без аккаунтов и лишних разрешений, плюс утилиты для плагинов рабочего окружения.",
+  repos_h:"Репозитории",own_h:"Свои",forks_h:"Форки и доработки",repos_link:"все репозитории",tg_link:"канал в Telegram",
+  contact_h:"Связь",footer:"Собрано вручную, живёт на GitHub Pages.",
+  stats:n=>`${n} публичных репозиториев · ${own(REPOS).length} своих · ${forks(REPOS).length} форков`,star:"звёзд",fork:"fork"},
+ en:{eyebrow:"Android / HyperOS modding",sub:"LSPosed and Magisk modules, app resource and text patching, camera and kernel work — everything that changes Xiaomi from the inside.",
+  about_h:"About",
+  about_p1:"I write modules that change Xiaomi systems from the inside: swapping app resources and text through LSPosed (API 102), including intercepting text rendering in Flutter apps, patching dev_features and camera chromatix libraries, building kernels for SM8350.",
+  about_p2:"The second line is device diagnostics: benchmarks and monitoring that need no accounts or extra permissions, plus utilities for workspace plugins.",
+  repos_h:"Repositories",own_h:"Own",forks_h:"Forks and modifications",repos_link:"all repositories",tg_link:"Telegram channel",
+  contact_h:"Contact",footer:"Hand-built, hosted on GitHub Pages.",
+  stats:n=>`${n} public repositories · ${own(REPOS).length} own · ${forks(REPOS).length} forks`,star:"stars",fork:"fork"}
+};
+
+let LANG=localStorage.getItem("lang")||"ru";
+
+function card(x,t){
+  return `<article class="card"><h3><a href="https://github.com/kazhemons/${x.n}">${x.n}</a></h3>
+    <p>${x.d[LANG]}</p><div class="meta">
+    ${x.f?`<span class="chip fork">${t.fork}</span>`:""}
+    ${x.s?`<span class="chip star">★ ${x.s} ${t.star}</span>`:""}
+    ${x.l?`<span class="chip language">${x.l}</span>`:""}</div></article>`;
+}
+
+function render(){
+  const t=UI[LANG];
+  document.documentElement.lang=LANG;
+  document.querySelectorAll("[data-i18n]").forEach(e=>e.textContent=t[e.dataset.i18n]);
+  document.getElementById("repoStats").textContent=t.stats(REPOS.length);
+  document.getElementById("own").innerHTML=own(REPOS).map(x=>card(x,t)).join("");
+  document.getElementById("forks").innerHTML=forks(REPOS).map(x=>card(x,t)).join("");
+  document.getElementById("tags").innerHTML=TAGS.map(x=>`<span class="tag">${x}</span>`).join("");
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lang===LANG)));
+  reveal();
+}
+
+let io;
+function reveal(){
+  const cards=document.querySelectorAll(".card");
+  if(io)io.disconnect();
+  io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{rootMargin:"0px 0px -40px 0px"});
+  cards.forEach((c,i)=>{c.style.transitionDelay=(i%9)*60+"ms";io.observe(c)});
+}
+
+document.querySelectorAll(".lang button").forEach(b=>b.addEventListener("click",()=>{
+  LANG=b.dataset.lang;localStorage.setItem("lang",LANG);render();
+}));
+render();
+</script>
+</body>
+</html>
